@@ -18,6 +18,13 @@ pred gyro_val {
 
 -- TODO: definisati kocnicu i ogranicenje da uvek vazi da jacina pritiska mora da bude izmedju 0 i 1 
 -- (odnosno, predstaviti kao 0 -100)
+sig BrakePosition {
+	pos: Int
+}
+
+pred pos_val {
+	all b: BrakePosition | b.pos >=0 and b.pos <=100
+}
 -- nakon toga, dodati kocnicu na sva mesta gde je potrebno
 
 abstract sig Sensor {
@@ -39,6 +46,8 @@ sig ACUSensors {
 	gyro: Gyroscope one -> Time,
 	frontal: ImpactSensor one -> Time,
 	side: SideSensor one -> Time
+	-- kocnica dodata
+	brake_pos: BrakePosition one -> Time
 }
 
 some sig Airbag {
@@ -62,6 +71,19 @@ pred turn_on [a: Airbag, t, t': Time ] {
 
 -- TODO: iskljucivanje
 -- dodati ga i kasnije gde je potrebno
+-- pokusaj(Karolina)
+pred turn_off [a: Airbag, t,t': Time] {
+	-- preconditions  
+	-- airbag is on
+	is_on[a, t]
+
+	-- postconditions  
+	-- airbag is off
+	!is_on[a, t']
+
+	-- frame conditions
+	--  mozda je potrebna provera jos necega?
+}
 
 
 -- aktivacija jednog airbag-a
@@ -92,13 +114,34 @@ pred still_impact [a: Airbag, t, t': Time] {
 }
 
 -- TODO: udarac u slucaju vece brzine
+-- pokusaj(Karolina)
 pred speed_impact [a: Airbag, t, t': Time] {
-
+	-- precondition
+	(let s = a.sensors.t | 
+	some s.frontal :> t or some s.side :> t) and -- frontalni ili bocni senzor je detektovan
+	(let s = a.sensors.t | 
+	let gyro = s.gyro.t |
+		gyro.g_meter > 3) -- ziroskop vise od 3G
+			
+	-- postcondition
+	activate[a, t, t']
 }
 
 -- TODO: ne zaboraviti i proveru da noga nije jako pritisnuta na kocnici
+-- pokusaj(Karolina)
 pred speed_impact_knee [a: Airbag, t, t': Time] {
-	
+	-- precondition
+	(let s = a.sensors.t | 
+	some s.frontal :> t or some s.side :> t) and -- frontalni ili bocni senzor je detektovan
+	(let s = a.sensors.t | 
+	let gyro = s.gyro.t |
+		gyro.g_meter > 3) and  -- ziroskop vise od 3G
+	(let s = a.sensors.t |
+	 let b = s.brake_pos.t |
+		b.pos <= 70) -- pozicija kocnice moze ici do 70, inace dolazi do povrede
+			
+	-- postcondition
+	activate[a, t, t']
 }
 
 
@@ -136,6 +179,8 @@ one sig ACU1 extends ACUSensors{}
 one sig G1 extends Gyroscope {}
 one sig IS1 extends ImpactSensor {}
 one sig DS1 extends SideSensor {}
+-- kocnica
+one sig BP1 extends BrakePosition{}
 
 one sig S1 extends Speed {}
 

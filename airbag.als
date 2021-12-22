@@ -45,7 +45,7 @@ sig ACUSensors {
 	speed: Speed one -> Time,
 	gyro: Gyroscope one -> Time,
 	frontal: ImpactSensor one -> Time,
-	side: SideSensor one -> Time
+	side: SideSensor one -> Time,
 	-- kocnica dodata
 	brake_pos: BrakePosition one -> Time
 }
@@ -93,6 +93,7 @@ pred activate[a: Airbag, t, t': Time] {
 	are_conditions_ok[a, t]
 
 	-- postcondition
+	-- meni ovo deluje kao greska, zar ne bi trebalo t' umesto t (Dejan)
 	is_activated[a, t]
 	-- frame condition
 	activated_changes[Airbag - a, t, t']
@@ -164,6 +165,14 @@ pred activated_changes[A: set Airbag, t,t': Time] {
 }
 
 -- TODO: predikat "transitions"
+pred transitions[t,t': Time] {
+  some a: Airbag |
+    turn_on [a, t, t'] or
+    turn_off [a, t, t'] or
+    still_impact[a, t, t'] or
+    speed_impact [a, t, t'] or
+    speed_impact_knee[a, t, t']
+}
 
 -- airbag 1: normal
 
@@ -172,6 +181,7 @@ one sig TNOR extends Normal {}
 one sig ABS1 extends AirbagSwitch {}
 one sig SWS1 extends SeatWeightSensor {}
 one sig SBS1 extends SeatbeltSensor {}
+
 
 -- ACU
 
@@ -210,7 +220,9 @@ pred init [t: Time] {
 
 pred safety_check {
  some Airbag
- init [T/first]
+ init [T/first] 
+ all t: Time - T/last | 
+   	transitions [t, T/next[t]]
  some t: Time | safe [t]
 } 
 
@@ -218,4 +230,4 @@ pred safe [t: Time] {
   ACU1.gyro.t != G1
 }
 
-run safety_check for 4
+run safety_check for 2 but exactly 1 Airbag

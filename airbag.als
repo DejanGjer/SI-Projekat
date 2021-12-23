@@ -71,7 +71,6 @@ pred turn_on [a: Airbag, t, t': Time ] {
 
 -- TODO: iskljucivanje
 -- dodati ga i kasnije gde je potrebno
--- pokusaj(Karolina)
 pred turn_off [a: Airbag, t,t': Time] {
 	-- preconditions  
 	-- airbag is on
@@ -80,9 +79,6 @@ pred turn_off [a: Airbag, t,t': Time] {
 	-- postconditions  
 	-- airbag is off
 	!is_on[a, t']
-
-	-- frame conditions
-	--  mozda je potrebna provera jos necega?
 }
 
 
@@ -93,8 +89,7 @@ pred activate[a: Airbag, t, t': Time] {
 	are_conditions_ok[a, t]
 
 	-- postcondition
-	-- meni ovo deluje kao greska, zar ne bi trebalo t' umesto t (Dejan)
-	is_activated[a, t]
+	is_activated[a, t']
 	-- frame condition
 	activated_changes[Airbag - a, t, t']
 }
@@ -115,7 +110,6 @@ pred still_impact [a: Airbag, t, t': Time] {
 }
 
 -- TODO: udarac u slucaju vece brzine
--- pokusaj(Karolina)
 pred speed_impact [a: Airbag, t, t': Time] {
 	-- precondition
 	(let s = a.sensors.t | 
@@ -132,7 +126,6 @@ pred speed_impact [a: Airbag, t, t': Time] {
 }
 
 -- TODO: ne zaboraviti i proveru da noga nije jako pritisnuta na kocnici
--- pokusaj(Karolina)
 pred speed_impact_knee [a: Airbag, t, t': Time] {
 	-- precondition
 	(let s = a.sensors.t | 
@@ -167,7 +160,7 @@ pred are_conditions_ok[a: Airbag, t:Time] {
 pred activated_changes[A: set Airbag, t,t': Time] {
 	all a: A |
 		-- TODO: ukljuciti uslove sa senzora tezine, o vezanom pojasu i korisnickom prekidacu
-		t' in a.activated iff t in a.on
+		t' in a.activated iff (t in a.on and are_conditions_ok[a, t])
 }
 
 -- TODO: predikat "transitions"
@@ -179,6 +172,11 @@ pred transitions[t,t': Time] {
     speed_impact [a, t, t'] or
     speed_impact_knee[a, t, t']
 }
+
+--pred type_impact[a: Airbag, t,t': Time] {
+	-- pokusati objediniti speed_impact i za knee
+--}
+
 
 -- airbag 1: normal
 
@@ -201,6 +199,12 @@ one sig BP1 extends BrakePosition{}
 one sig S1 extends Speed {}
 
 -- TODO: dodati airbag za kolena i potrebne komponente
+one sig A2 extends Airbag {}
+one sig TKNEE extends Knee {}
+one sig ABS2 extends AirbagSwitch {}
+one sig SWS2 extends SeatWeightSensor {}
+one sig SBS2 extends SeatbeltSensor {}
+
 
 fact {
 	G1.g_meter = 0
@@ -214,6 +218,13 @@ pred init [t: Time] {
 	A1.seatbelt.t = SBS1
 	A1.switch.t = ABS1
 
+	-- podaci za airbag za koleno
+	A2.position = TKNEE
+	A2.sensors.t = ACU1
+	A2.weight.t = SWS2
+	A2.seatbelt.t = SBS2
+	A2.switch.t = ABS2
+
 	ACU1.speed.t = S1
 	ACU1.gyro.t = G1
 	ACU1.frontal.t = IS1
@@ -222,6 +233,7 @@ pred init [t: Time] {
  	!is_on[A1, t] and !is_activated[A1, t]
  	
 	-- TODO: dopuniti uslovom da i za sve ostale airbag-ove u pocetku vazi da su iskljuceni
+	!is_on[A2, t] and !is_activated[A2, t]
 }
 
 pred safety_check {

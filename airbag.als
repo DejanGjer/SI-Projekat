@@ -228,7 +228,9 @@ pred init [t: Time] {
 	ACU1.speed.t = S1
 	ACU1.gyro.t = G1
 	ACU1.frontal.t = IS1
-	ACU1.side.t = DS1	
+	ACU1.side.t = DS1
+	--kocnica
+	ACU1.brake_pos.t = BP1
 
  	!is_on[A1, t] and !is_activated[A1, t]
  	

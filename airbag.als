@@ -119,6 +119,9 @@ pred still_impact [a: Airbag, t, t': Time] {
 pred speed_impact [a: Airbag, t, t': Time] {
 	-- precondition
 	(let s = a.sensors.t | 
+	let speed = s.speed.t |
+		speed.value > 3) and 
+	(let s = a.sensors.t | 
 	some s.frontal :> t or some s.side :> t) and -- frontalni ili bocni senzor je detektovan
 	(let s = a.sensors.t | 
 	let gyro = s.gyro.t |
@@ -132,6 +135,9 @@ pred speed_impact [a: Airbag, t, t': Time] {
 -- pokusaj(Karolina)
 pred speed_impact_knee [a: Airbag, t, t': Time] {
 	-- precondition
+	(let s = a.sensors.t | 
+	let speed = s.speed.t |
+		speed.value > 3) and 
 	(let s = a.sensors.t | 
 	some s.frontal :> t or some s.side :> t) and -- frontalni ili bocni senzor je detektovan
 	(let s = a.sensors.t | 

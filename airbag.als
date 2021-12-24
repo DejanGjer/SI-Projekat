@@ -169,12 +169,18 @@ pred transitions[t,t': Time] {
     turn_on [a, t, t'] or
     turn_off [a, t, t'] or
     still_impact[a, t, t'] or
+--  type_impact[a,t,t']
+-- Ovde bi se samo ubacio ovaj predikat, umjesto ova dva
     speed_impact [a, t, t'] or
     speed_impact_knee[a, t, t']
 }
-
+--(Marko)
+-- Nisam siguran samo oko ==
+--Ali je ovo samo neka ideja,provjericemo sa njom
 --pred type_impact[a: Airbag, t,t': Time] {
 	-- pokusati objediniti speed_impact i za knee
+	--(speed_impact[a,t,t'] iff a.position == Normal)or
+	--(speed_impact_knee[a,t,t'] iff a.position == Knee)
 --}
 
 

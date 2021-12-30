@@ -202,6 +202,9 @@ pred activated_changes[A: set Airbag, t,t': Time] {
 
 -- TODO: predikat "transitions"
 --definišemo moguće tranzicije u vremenu
+--kod tranzicije moguće akcije za airbag su turn on i turn off i impacti
+--ako je airbag tipa Normal možemo pozvati still_impact ili speed_impact
+--a, ako je airbag tipa Knee onda možemo da pozovemo samo impact_knee
 pred transitions[t,t': Time] {
   some a: Airbag |
     turn_on [a, t, t'] or

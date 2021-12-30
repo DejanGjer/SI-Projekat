@@ -152,17 +152,18 @@ pred speed_impact [a: Airbag, t, t': Time] {
 -- potpuno isto kao prethodni predikat samo treba proveriti i položaj kočnice
 pred speed_impact_knee [a: Airbag, t, t': Time] {
 	-- precondition
-	(let s = a.sensors.t | 
-	let speed = s.speed.t |
-		speed.value >= 3) and 
-	(let s = a.sensors.t | 
-	some s.frontal :> t or some s.side :> t) and -- frontalni ili bocni senzor je detektovan
-	(let s = a.sensors.t | 
-	let gyro = s.gyro.t |
-		gyro.g_meter > 3) and  -- ziroskop vise od 3G
+	--(let s = a.sensors.t | 
+	--let speed = s.speed.t |
+	--	speed.value >= 3) and 
+	--(let s = a.sensors.t | 
+	--some s.frontal :> t or some s.side :> t) and -- frontalni ili bocni senzor je detektovan
+	--(let s = a.sensors.t | 
+	--let gyro = s.gyro.t |
+	--	gyro.g_meter > 3) and  -- ziroskop vise od 3G
 	(let s = a.sensors.t |
-	 let b = s.brake_pos.t |
-		b.pos <= 70) -- pozicija kocnice moze ici do 70, inace dolazi do povrede
+	let b = s.brake_pos.t |
+		b.pos <= 70 and
+	(still_impact[a,t,t'] or speed_impact[a,t,t'])) -- pozicija kocnice moze ici do 70, inace dolazi do povrede
 			
 	-- postcondition
 	activate[a, t, t']
@@ -188,7 +189,10 @@ pred activated_changes[A: set Airbag, t,t': Time] {
 	all a: A |
 		-- TODO: ukljuciti uslove sa senzora tezine, o vezanom pojasu i korisnickom prekidacu
 		--aktiviramo trenutni airbag ako je uključen i ima ispunjene sve uslove
-		t' in a.activated iff (t in a.on and are_conditions_ok[a, t])
+		t' in a.activated iff (t in a.on and are_conditions_ok[a, t] and (a.position = Normal or 
+		(let s = a.sensors.t |
+		let b = s.brake_pos.t |
+		b.pos <= 70)))
 }
 
 -- TODO: predikat "transitions"

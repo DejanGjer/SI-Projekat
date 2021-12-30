@@ -12,7 +12,7 @@ sig Gyroscope {
 }
 
 -- ogranicenje vrednosti za g_meter
-pred gyro_val {
+fact gyro_val {
 	all g: Gyroscope | g.g_meter >= 0 and g.g_meter <= 30
 }
 
@@ -22,7 +22,7 @@ sig BrakePosition {
 	pos: Int
 }
 
-pred pos_val {
+fact pos_val {
 	all b: BrakePosition | b.pos >=0 and b.pos <=100
 }
 -- nakon toga, dodati kocnicu na sva mesta gde je potrebno
@@ -114,7 +114,7 @@ pred speed_impact [a: Airbag, t, t': Time] {
 	-- precondition
 	(let s = a.sensors.t | 
 	let speed = s.speed.t |
-		speed.value > 3) and 
+		speed.value >= 3) and 
 	(let s = a.sensors.t | 
 	some s.frontal :> t or some s.side :> t) and -- frontalni ili bocni senzor je detektovan
 	(let s = a.sensors.t | 
@@ -130,7 +130,7 @@ pred speed_impact_knee [a: Airbag, t, t': Time] {
 	-- precondition
 	(let s = a.sensors.t | 
 	let speed = s.speed.t |
-		speed.value > 3) and 
+		speed.value >= 3) and 
 	(let s = a.sensors.t | 
 	some s.frontal :> t or some s.side :> t) and -- frontalni ili bocni senzor je detektovan
 	(let s = a.sensors.t | 
@@ -169,17 +169,18 @@ pred transitions[t,t': Time] {
     turn_on [a, t, t'] or
     turn_off [a, t, t'] or
     still_impact[a, t, t'] or
-    type_impact[a,t,t']
-
+    --type_impact[a,t,t']
+    speed_impact[a,t,t'] or
+    speed_impact_knee[a,t,t']
 }
 
 
 --Normal or knee airbag position
-pred type_impact[a: Airbag, t,t': Time] {
-	
-   (speed_impact[a,t,t'] iff a.position == Normal)or
-   (speed_impact_knee[a,t,t'] iff a.position == Knee)
-}
+--pred type_impact[a: Airbag, t,t': Time] {
+--	
+--  (speed_impact[a,t,t'] iff a.position = Normal)or
+--   (speed_impact_knee[a,t,t'] iff a.position = Knee)
+--}
 
 
 -- airbag 1: normal
@@ -251,7 +252,8 @@ pred safety_check {
 } 
 
 pred safe [t: Time] {
-  ACU1.gyro.t != G1
+  -- dodat pored originalne veryije i uslov da se airbag A1 aktivirao, moze da se obrise posle posto sluzi samo za proveru
+  ACU1.gyro.t != G1 and (t in A1.activated)
 }
 
-run safety_check for 2 but exactly 1 Airbag
+run safety_check for 2 but 8 int

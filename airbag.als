@@ -2,6 +2,7 @@ open util/ordering[Time] as T
 
 sig Time {}
 
+-- brzina, nisu postavljena neka ograničenja
 sig Speed{
 	value: Int
 }
@@ -12,7 +13,9 @@ sig Gyroscope {
 }
 
 -- ogranicenje vrednosti za g_meter
+-- postavljeno da bude fact jer važi svuda
 fact gyro_val {
+	-- za svaki žiroskop važi da može da izmeri vrednosti između 0 i 30G sile
 	all g: Gyroscope | g.g_meter >= 0 and g.g_meter <= 30
 }
 
@@ -22,6 +25,8 @@ sig BrakePosition {
 	pos: Int
 }
 
+-- ograničenje vrednosti za poziciju kočnice
+-- postavljeno da bude fact jer važi svuda
 fact pos_val {
 	all b: BrakePosition | b.pos >=0 and b.pos <=100
 }
@@ -32,31 +37,46 @@ abstract sig Sensor {
 
 sig ImpactSensor, SideSensor, SeatWeightSensor, SeatbeltSensor extends Sensor {}
 
+-- switch na airbag-u koji može da se isključi
+-- npr. u slučaju da vozač ima dete koje vozi na prednjem sedištu
 abstract sig Switch {
 	on: set Time
 }
 
+--tip pozicije na kojoj se nalazi airbag
+--Normal - za klasične pozicije
+--Knee - za poziciju kod kolena vozača 
 abstract sig AirbagPosition {}
 sig Normal, Knee extends AirbagPosition {}
 
 sig AirbagSwitch extends Switch {}
 
+--Senzori sa ACU jedinice
 sig ACUSensors {
 	speed: Speed one -> Time,
 	gyro: Gyroscope one -> Time,
+	-- senzor za frontalni udarac
 	frontal: ImpactSensor one -> Time,
+	-- senzor za udarac sa strane
 	side: SideSensor one -> Time,
 	-- kocnica dodata
 	brake_pos: BrakePosition one -> Time
 }
 
+--Tip podatka airbag
 some sig Airbag {
+	-- skup vremena kada je airbag uključen
 	on: set Time,
+	--skup vremena kada je airbag aktiviran
 	activated: set Time, 
+	--senzor za vezan pojas na odgovarajućem sedištu
 	seatbelt: SeatbeltSensor one -> Time,
+	--senzor težine na odgovarajućem sedištu
 	weight: SeatWeightSensor one -> Time,
 	switch: AirbagSwitch one -> Time, 
+	--senzori sa ACU jedinice
 	sensors: ACUSensors one -> Time,
+	--tip pozicije airbag-a
 	position: AirbagPosition
 }
 
@@ -86,14 +106,17 @@ pred turn_off [a: Airbag, t,t': Time] {
 pred activate[a: Airbag, t, t': Time] {
 	-- preconditions
 	is_on[a, t] 
+	-- provera uslova neophodnih da bi se airbag aktivirao (sem postojanja udara - spoljasnji faktor)
 	are_conditions_ok[a, t]
 
 	-- postcondition
 	is_activated[a, t']
 	-- frame condition
+	-- prolazimo i kroz sve ostale airbag-ove da se provere uslovi njihovih aktivacija
 	activated_changes[Airbag - a, t, t']
 }
 
+-- predikat za udarac u mirovanju auta
 pred still_impact [a: Airbag, t, t': Time] {
 	-- precondition
 	(let s = a.sensors.t | 
@@ -126,6 +149,7 @@ pred speed_impact [a: Airbag, t, t': Time] {
 }
 
 -- TODO: ne zaboraviti i proveru da noga nije jako pritisnuta na kocnici
+-- potpuno isto kao prethodni predikat samo treba proveriti i položaj kočnice
 pred speed_impact_knee [a: Airbag, t, t': Time] {
 	-- precondition
 	(let s = a.sensors.t | 
@@ -144,7 +168,6 @@ pred speed_impact_knee [a: Airbag, t, t': Time] {
 	activate[a, t, t']
 }
 
-
 pred is_on [a: Airbag, t: Time] {
 	t in a.on and one a.switch :> t
 }
@@ -153,35 +176,31 @@ pred is_activated[a: Airbag, t: Time] {
 	t in a.activated
 }
 
+-- Uslovi koji moraju biti ispunjeni da bi se airbag aktivirao
 pred are_conditions_ok[a: Airbag, t:Time] {
+	-- switch mora biti uključen
+	-- senzori za vezan pojas i težinu na sedištu moraju biti aktivni
 	one a.switch :> t and one a.seatbelt :> t and one a.weight :> t
 }
 
 pred activated_changes[A: set Airbag, t,t': Time] {
+	--prolazimo za svaki airbag
 	all a: A |
 		-- TODO: ukljuciti uslove sa senzora tezine, o vezanom pojasu i korisnickom prekidacu
+		--aktiviramo trenutni airbag ako je uključen i ima ispunjene sve uslove
 		t' in a.activated iff (t in a.on and are_conditions_ok[a, t])
 }
 
 -- TODO: predikat "transitions"
+--definišemo moguće tranzicije u vremenu
 pred transitions[t,t': Time] {
   some a: Airbag |
     turn_on [a, t, t'] or
     turn_off [a, t, t'] or
     still_impact[a, t, t'] or
-    --type_impact[a,t,t']
     speed_impact[a,t,t'] or
     speed_impact_knee[a,t,t']
 }
-
-
---Normal or knee airbag position
---pred type_impact[a: Airbag, t,t': Time] {
---	
---  (speed_impact[a,t,t'] iff a.position = Normal)or
---   (speed_impact_knee[a,t,t'] iff a.position = Knee)
---}
-
 
 -- airbag 1: normal
 
@@ -204,13 +223,14 @@ one sig BP1 extends BrakePosition{}
 one sig S1 extends Speed {}
 
 -- TODO: dodati airbag za kolena i potrebne komponente
+--Komponente za drugi airbag
 one sig A2 extends Airbag {}
 one sig TKNEE extends Knee {}
 one sig ABS2 extends AirbagSwitch {}
 one sig SWS2 extends SeatWeightSensor {}
 one sig SBS2 extends SeatbeltSensor {}
 
-
+--početna vrednost žirometra
 fact {
 	G1.g_meter = 0
 }
@@ -230,6 +250,7 @@ pred init [t: Time] {
 	A2.seatbelt.t = SBS2
 	A2.switch.t = ABS2
 
+	--podaci za ACU jedinicu
 	ACU1.speed.t = S1
 	ACU1.gyro.t = G1
 	ACU1.frontal.t = IS1
@@ -252,7 +273,7 @@ pred safety_check {
 } 
 
 pred safe [t: Time] {
-  -- dodat pored originalne veryije i uslov da se airbag A1 aktivirao, moze da se obrise posle posto sluzi samo za proveru
+  -- dodat pored originalne verzije i uslov da se airbag A1 aktivirao, moze da se obrise posle posto sluzi samo za proveru
   ACU1.gyro.t != G1 and (t in A1.activated)
 }
 

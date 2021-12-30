@@ -166,8 +166,22 @@ pred impact_knee [a: Airbag, t, t': Time] {
 	--	gyro.g_meter > 3) and  -- ziroskop vise od 3G
 	(let s = a.sensors.t |
 	let b = s.brake_pos.t |
-		b.pos <= 70 and
-	(still_impact[a,t,t'] or speed_impact[a,t,t'])) -- pozicija kocnice moze ici do 70, inace dolazi do povrede
+		b.pos <= 70) and  -- pozicija kocnice moze ici do 70, inace dolazi do povrede
+	(let s = a.sensors.t | 
+	some s.frontal :> t or some s.side :> t) and --provera ocitavanja senzora
+	(((let s = a.sensors.t | 
+	let speed = s.speed.t |
+		speed.value < 3) and
+	(let s = a.sensors.t | 
+	let gyro = s.gyro.t |
+		gyro.g_meter >= 2)) or
+	((let s = a.sensors.t | 
+	let speed = s.speed.t |
+		speed.value >= 3) and
+	(let s = a.sensors.t | 
+	let gyro = s.gyro.t |
+		gyro.g_meter > 3))) 
+
 			
 	-- postcondition
 	activate[a, t, t']

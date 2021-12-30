@@ -149,8 +149,12 @@ pred speed_impact [a: Airbag, t, t': Time] {
 }
 
 -- TODO: ne zaboraviti i proveru da noga nije jako pritisnuta na kocnici
--- potpuno isto kao prethodni predikat samo treba proveriti i položaj kočnice
-pred speed_impact_knee [a: Airbag, t, t': Time] {
+-- prvobitna ideja je bila da uslovi budu isti kao za speed_impact i da se još doda uslov za kočnicu
+-- pošto smatramo da ima smisla da i kod udarca u mirovanju može da se desi da vozač pritiska kočnicu
+-- modifikovali smo predikat tako da proveravamo da li se desio still ili speed impact, i ako nešto od toga jeste
+-- zahteva još i uslov za pritisak kočnice 
+--stari kod je zakomentarisan  
+pred impact_knee [a: Airbag, t, t': Time] {
 	-- precondition
 	--(let s = a.sensors.t | 
 	--let speed = s.speed.t |
@@ -188,7 +192,9 @@ pred activated_changes[A: set Airbag, t,t': Time] {
 	--prolazimo za svaki airbag
 	all a: A |
 		-- TODO: ukljuciti uslove sa senzora tezine, o vezanom pojasu i korisnickom prekidacu
-		--aktiviramo trenutni airbag ako je uključen i ima ispunjene sve uslove
+		--aktiviramo trenutni airbag ako je:
+		--1) uključen i ima ispunjene sve uslove
+		--2) ako je airbag tipa Knee, onda proveravamo dadtni uslov za kočnicu (jer to nije provereno uslovom 1)
 		t' in a.activated iff (t in a.on and are_conditions_ok[a, t] and (a.position = Normal or 
 		(let s = a.sensors.t |
 		let b = s.brake_pos.t |
@@ -203,7 +209,7 @@ pred transitions[t,t': Time] {
     turn_off [a, t, t'] or
     still_impact[a, t, t'] or
     speed_impact[a,t,t'] or
-    speed_impact_knee[a,t,t']
+    impact_knee[a,t,t']
 }
 
 -- airbag 1: normal
